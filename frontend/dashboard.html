@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreelanceFlow — Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="app-page">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">Freelance<span class="accent">Flow</span></div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item active">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Dashboard
+            </a>
+            <a href="clients.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Clients
+            </a>
+            <a href="projects.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Projects
+            </a>
+            <a href="invoices.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Invoices
+            </a>
+            <a href="timelogs.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Time Logs
+            </a>
+        </nav>
+        <button class="logout-btn" onclick="logout()">
+            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Logout
+        </button>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Dashboard</h1>
+                <p class="page-sub">Welcome back! Here's your overview.</p>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-value" id="totalClients">—</div>
+                    <div class="stat-label">Total Clients</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-value" id="totalProjects">—</div>
+                    <div class="stat-label">Active Projects</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon amber">
+                    <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-value" id="totalInvoices">—</div>
+                    <div class="stat-label">Pending Invoices</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon rose">
+                    <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-value" id="totalEarnings">—</div>
+                    <div class="stat-label">Total Earnings</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECENT SECTIONS -->
+        <div class="dashboard-grid">
+            <!-- Recent Clients -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Recent Clients</h2>
+                    <a href="clients.html" class="card-link">View all →</a>
+                </div>
+                <div id="recentClients" class="list-container">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Recent Projects -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Recent Projects</h2>
+                    <a href="projects.html" class="card-link">View all →</a>
+                </div>
+                <div id="recentProjects" class="list-container">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script>
+        // Protect page — redirect to login if no token
+        if (!getToken()) window.location.href = 'index.html';
+
+        async function loadDashboard() {
+            const [clients, projects, invoices] = await Promise.all([
+                getClients(),
+                getProjects(),
+                getInvoices()
+            ]);
+
+            // Stats
+            document.getElementById('totalClients').textContent  = clients.length;
+            document.getElementById('totalProjects').textContent = projects.filter(p => p.status === 'active').length;
+            document.getElementById('totalInvoices').textContent = invoices.filter(i => i.status !== 'paid').length;
+
+            const earnings = invoices
+                .filter(i => i.status === 'paid')
+                .reduce((sum, i) => sum + parseFloat(i.amount), 0);
+            document.getElementById('totalEarnings').textContent = '₱' + earnings.toLocaleString();
+
+            // Recent Clients
+            const clientsHtml = clients.slice(0, 5).map(c => `
+                <div class="list-item">
+                    <div class="list-avatar">${c.name.charAt(0).toUpperCase()}</div>
+                    <div class="list-info">
+                        <div class="list-name">${c.name}</div>
+                        <div class="list-sub">${c.company || c.email}</div>
+                    </div>
+                </div>
+            `).join('') || '<div class="empty">No clients yet</div>';
+            document.getElementById('recentClients').innerHTML = clientsHtml;
+
+            // Recent Projects
+            const statusColors = { active: 'green', paused: 'amber', done: 'blue' };
+            const projectsHtml = projects.slice(0, 5).map(p => `
+                <div class="list-item">
+                    <div class="list-info">
+                        <div class="list-name">${p.title}</div>
+                        <div class="list-sub">Budget: ₱${parseFloat(p.budget).toLocaleString()}</div>
+                    </div>
+                    <span class="badge badge-${statusColors[p.status]}">${p.status}</span>
+                </div>
+            `).join('') || '<div class="empty">No projects yet</div>';
+            document.getElementById('recentProjects').innerHTML = projectsHtml;
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>

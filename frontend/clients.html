@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreelanceFlow — Clients</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="app-page">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">Freelance<span class="accent">Flow</span></div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Dashboard
+            </a>
+            <a href="clients.html" class="nav-item active">
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Clients
+            </a>
+            <a href="projects.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Projects
+            </a>
+            <a href="invoices.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Invoices
+            </a>
+            <a href="timelogs.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Time Logs
+            </a>
+        </nav>
+        <button class="logout-btn" onclick="logout()">
+            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Logout
+        </button>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Clients</h1>
+                <p class="page-sub">Manage all your clients</p>
+            </div>
+            <button class="btn-primary btn-add" onclick="openModal()">
+                + Add Client
+            </button>
+        </div>
+
+        <!-- SEARCH -->
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search clients..." oninput="filterClients()">
+        </div>
+
+        <!-- TABLE -->
+        <div class="card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Company</th>
+                        <th>Phone</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTable">
+                    <tr><td colspan="5" class="loading">Loading clients...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- MODAL -->
+    <div id="modal" class="modal-overlay" onclick="closeModalOutside(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Client</h3>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <form id="clientForm" onsubmit="submitClient(event)">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="clientName" placeholder="Juan dela Cruz" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="clientEmail" placeholder="juan@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Company</label>
+                    <input type="text" id="clientCompany" placeholder="ABC Company">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" id="clientPhone" placeholder="09123456789">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="submitBtn">Save Client</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!getToken()) window.location.href = 'index.html';
+
+        let allClients = [];
+        let editingId  = null;
+
+        // LOAD CLIENTS
+        async function loadClients() {
+            allClients = await getClients();
+            renderTable(allClients);
+        }
+
+        // RENDER TABLE
+        function renderTable(clients) {
+            const tbody = document.getElementById('clientsTable');
+            if (!clients.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty">No clients found. Add your first client!</td></tr>';
+                return;
+            }
+            tbody.innerHTML = clients.map(c => `
+                <tr>
+                    <td>
+                        <div class="table-name">
+                            <div class="list-avatar">${c.name.charAt(0).toUpperCase()}</div>
+                            ${c.name}
+                        </div>
+                    </td>
+                    <td>${c.email}</td>
+                    <td>${c.company || '—'}</td>
+                    <td>${c.phone || '—'}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn-edit" onclick="editClient(${c.id})">Edit</button>
+                            <button class="btn-delete" onclick="confirmDelete(${c.id}, '${c.name}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // SEARCH FILTER
+        function filterClients() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allClients.filter(c =>
+                c.name.toLowerCase().includes(q) ||
+                c.email.toLowerCase().includes(q) ||
+                (c.company || '').toLowerCase().includes(q)
+            );
+            renderTable(filtered);
+        }
+
+        // OPEN MODAL (Add)
+        function openModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Client';
+            document.getElementById('submitBtn').textContent  = 'Save Client';
+            document.getElementById('clientForm').reset();
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        // OPEN MODAL (Edit)
+        function editClient(id) {
+            const c = allClients.find(c => c.id === id);
+            editingId = id;
+            document.getElementById('modalTitle').textContent   = 'Edit Client';
+            document.getElementById('submitBtn').textContent    = 'Update Client';
+            document.getElementById('clientName').value         = c.name;
+            document.getElementById('clientEmail').value        = c.email;
+            document.getElementById('clientCompany').value      = c.company || '';
+            document.getElementById('clientPhone').value        = c.phone || '';
+            document.getElementById('modal').style.display      = 'flex';
+        }
+
+        // CLOSE MODAL
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        function closeModalOutside(e) { if (e.target.id === 'modal') closeModal(); }
+
+        // SUBMIT (Create or Update)
+        async function submitClient(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true; btn.textContent = 'Saving...';
+
+            const data = {
+                name:    document.getElementById('clientName').value,
+                email:   document.getElementById('clientEmail').value,
+                company: document.getElementById('clientCompany').value,
+                phone:   document.getElementById('clientPhone').value,
+            };
+
+            if (editingId) {
+                await updateClient(editingId, data);
+            } else {
+                await createClient(data);
+            }
+
+            closeModal();
+            await loadClients();
+            btn.disabled = false;
+        }
+
+        // DELETE
+        async function confirmDelete(id, name) {
+            if (confirm(`Delete "${name}"? This cannot be undone.`)) {
+                await deleteClient(id);
+                await loadClients();
+            }
+        }
+
+        loadClients();
+    </script>
+</body>
+</html>

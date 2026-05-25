@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreelanceFlow — Invoices</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="app-page">
+    <aside class="sidebar">
+        <div class="sidebar-logo">Freelance<span class="accent">Flow</span></div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard
+            </a>
+            <a href="clients.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Clients
+            </a>
+            <a href="projects.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Projects
+            </a>
+            <a href="invoices.html" class="nav-item active">
+                <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Invoices
+            </a>
+            <a href="timelogs.html" class="nav-item">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Time Logs
+            </a>
+        </nav>
+        <button class="logout-btn" onclick="logout()">
+            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout
+        </button>
+    </aside>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Invoices</h1>
+                <p class="page-sub">Manage billing and payments</p>
+            </div>
+            <button class="btn-primary btn-add" onclick="openModal()">+ New Invoice</button>
+        </div>
+
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterByStatus('all', this)">All</button>
+            <button class="filter-tab" onclick="filterByStatus('draft', this)">Draft</button>
+            <button class="filter-tab" onclick="filterByStatus('sent', this)">Sent</button>
+            <button class="filter-tab" onclick="filterByStatus('paid', this)">Paid</button>
+        </div>
+
+        <div class="card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Project</th>
+                        <th>Amount</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoicesTable">
+                    <tr><td colspan="6" class="loading">Loading invoices...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- MODAL -->
+    <div id="modal" class="modal-overlay" onclick="closeModalOutside(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">New Invoice</h3>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <form id="invoiceForm" onsubmit="submitInvoice(event)">
+                <div class="form-group">
+                    <label>Invoice Number *</label>
+                    <input type="text" id="invNo" placeholder="INV-001" required>
+                </div>
+                <div class="form-group">
+                    <label>Project *</label>
+                    <select id="invProject" required>
+                        <option value="">Select project...</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Amount (₱) *</label>
+                        <input type="number" id="invAmount" placeholder="10000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" id="invDue">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="invStatus">
+                        <option value="draft">Draft</option>
+                        <option value="sent">Sent</option>
+                        <option value="paid">Paid</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="submitBtn">Save Invoice</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!getToken()) window.location.href = 'index.html';
+
+        let allInvoices = [];
+        let allProjects = [];
+        let editingId   = null;
+
+        async function loadData() {
+            [allInvoices, allProjects] = await Promise.all([getInvoices(), getProjects()]);
+            populateProjectSelect();
+            renderTable(allInvoices);
+        }
+
+        function populateProjectSelect() {
+            const sel = document.getElementById('invProject');
+            allProjects.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.title;
+                sel.appendChild(opt);
+            });
+        }
+
+        function getProjectName(id) {
+            const p = allProjects.find(p => p.id === id);
+            return p ? p.title : '—';
+        }
+
+        function renderTable(invoices) {
+            const tbody = document.getElementById('invoicesTable');
+            if (!invoices.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty">No invoices found.</td></tr>';
+                return;
+            }
+            const statusMap = { draft: 'amber', sent: 'blue', paid: 'green' };
+            tbody.innerHTML = invoices.map(inv => `
+                <tr>
+                    <td><strong>${inv.invoice_no}</strong></td>
+                    <td>${getProjectName(inv.project)}</td>
+                    <td><strong>₱${parseFloat(inv.amount).toLocaleString()}</strong></td>
+                    <td>${inv.due_date || '—'}</td>
+                    <td><span class="badge badge-${statusMap[inv.status]}">${inv.status}</span></td>
+                    <td>
+                        <div class="action-btns">
+                            ${inv.status !== 'paid' ? `<button class="btn-edit" onclick="markPaid(${inv.id})">✓ Paid</button>` : ''}
+                            <button class="btn-edit" onclick="editInvoice(${inv.id})">Edit</button>
+                            <button class="btn-delete" onclick="confirmDelete(${inv.id}, '${inv.invoice_no}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterByStatus(status, btn) {
+            document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const filtered = status === 'all' ? allInvoices : allInvoices.filter(i => i.status === status);
+            renderTable(filtered);
+        }
+
+        function openModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'New Invoice';
+            document.getElementById('submitBtn').textContent  = 'Save Invoice';
+            document.getElementById('invoiceForm').reset();
+            // Auto-generate invoice number
+            const num = String(allInvoices.length + 1).padStart(3, '0');
+            document.getElementById('invNo').value = `INV-${num}`;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function editInvoice(id) {
+            const inv = allInvoices.find(i => i.id === id);
+            editingId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Invoice';
+            document.getElementById('submitBtn').textContent  = 'Update Invoice';
+            document.getElementById('invNo').value      = inv.invoice_no;
+            document.getElementById('invProject').value = inv.project;
+            document.getElementById('invAmount').value  = inv.amount;
+            document.getElementById('invDue').value     = inv.due_date || '';
+            document.getElementById('invStatus').value  = inv.status;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        async function markPaid(id) {
+            if (confirm('Mark this invoice as paid?')) {
+                await updateInvoice(id, { status: 'paid' });
+                await loadData();
+            }
+        }
+
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        function closeModalOutside(e) { if (e.target.id === 'modal') closeModal(); }
+
+        async function submitInvoice(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true; btn.textContent = 'Saving...';
+            const data = {
+                invoice_no: document.getElementById('invNo').value,
+                project:    document.getElementById('invProject').value,
+                amount:     document.getElementById('invAmount').value,
+                due_date:   document.getElementById('invDue').value || null,
+                status:     document.getElementById('invStatus').value,
+            };
+            editingId ? await updateInvoice(editingId, data) : await createInvoice(data);
+            closeModal();
+            await loadData();
+            btn.disabled = false;
+        }
+
+        async function confirmDelete(id, no) {
+            if (confirm(`Delete invoice "${no}"?`)) {
+                await deleteInvoice(id);
+                await loadData();
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
