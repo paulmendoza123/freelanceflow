@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreelanceFlow — Create Account</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-page">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <span class="logo-text">Freelance<span class="accent">Flow</span></span>
+        </div>
+        <p class="auth-subtitle">Create your free account</p>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="fullname" placeholder="Juan dela Cruz">
+            </div>
+            <div class="form-group">
+                <label>Username *</label>
+                <input type="text" id="username" placeholder="juandelacruz" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="juan@email.com">
+            </div>
+            <div class="form-group">
+                <label>Password *</label>
+                <input type="password" id="password" placeholder="Min. 6 characters" required>
+            </div>
+            <div class="form-group">
+                <label>Confirm Password *</label>
+                <input type="password" id="confirmPassword" placeholder="Repeat password" required>
+            </div>
+
+            <!-- Password strength indicator -->
+            <div class="strength-bar-wrap">
+                <div class="strength-bar" id="strengthBar"></div>
+            </div>
+            <div class="strength-label" id="strengthLabel"></div>
+
+            <p id="errorMsg"  class="error-msg"></p>
+            <p id="successMsg" class="success-msg"></p>
+
+            <button type="submit" class="btn-primary" id="registerBtn">Create Account</button>
+        </form>
+
+        <div class="auth-links">
+            <span>Already have an account?</span>
+            <a href="index.html">Login here</a>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        // Redirect if already logged in
+        if (getToken()) window.location.href = 'dashboard.html';
+
+        // Password strength checker
+        document.getElementById('password').addEventListener('input', function() {
+            const val = this.value;
+            const bar = document.getElementById('strengthBar');
+            const lbl = document.getElementById('strengthLabel');
+            let strength = 0;
+            if (val.length >= 6)  strength++;
+            if (val.length >= 10) strength++;
+            if (/[A-Z]/.test(val)) strength++;
+            if (/[0-9]/.test(val)) strength++;
+            if (/[^A-Za-z0-9]/.test(val)) strength++;
+
+            const levels = [
+                { color: '#ef4444', label: 'Very Weak',  width: '20%'  },
+                { color: '#f97316', label: 'Weak',       width: '40%'  },
+                { color: '#eab308', label: 'Fair',       width: '60%'  },
+                { color: '#22c55e', label: 'Strong',     width: '80%'  },
+                { color: '#16a34a', label: 'Very Strong',width: '100%' },
+            ];
+            const lvl = levels[Math.max(0, strength - 1)];
+            if (val.length > 0) {
+                bar.style.width = lvl.width;
+                bar.style.background = lvl.color;
+                lbl.textContent = lvl.label;
+                lbl.style.color = lvl.color;
+            } else {
+                bar.style.width = '0%';
+                lbl.textContent = '';
+            }
+        });
+
+        // Submit
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('registerBtn');
+            const errorMsg   = document.getElementById('errorMsg');
+            const successMsg = document.getElementById('successMsg');
+            errorMsg.textContent = '';
+            successMsg.textContent = '';
+
+            const password = document.getElementById('password').value;
+            const confirm  = document.getElementById('confirmPassword').value;
+
+            if (password !== confirm) {
+                errorMsg.textContent = 'Passwords do not match!';
+                return;
+            }
+            if (password.length < 6) {
+                errorMsg.textContent = 'Password must be at least 6 characters!';
+                return;
+            }
+
+            btn.textContent = 'Creating account...';
+            btn.disabled = true;
+
+            const response = await fetch('http://127.0.0.1:8000/api/auth/register/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username:         document.getElementById('username').value,
+                    email:            document.getElementById('email').value,
+                    password:         password,
+                    confirm_password: confirm,
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                successMsg.textContent = data.message + ' Redirecting to login...';
+                setTimeout(() => window.location.href = 'index.html', 2000);
+            } else {
+                errorMsg.textContent = data.error || 'Registration failed.';
+                btn.textContent = 'Create Account';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
