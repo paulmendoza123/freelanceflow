@@ -1,11 +1,13 @@
 const BASE_URL = 'http://127.0.0.1:8000/api';
 
 // Save & get token from localStorage
-const getToken  = () => localStorage.getItem('access_token');
-const saveToken = (token) => localStorage.setItem('access_token', token);
-const logout    = () => { localStorage.clear(); window.location.href = 'index.html'; };
+const getToken     = () => localStorage.getItem('access_token');
+const saveToken    = (token) => localStorage.setItem('access_token', token);
+const saveRefresh  = (token) => localStorage.setItem('refresh_token', token);
+const getRefresh   = () => localStorage.getItem('refresh_token');
+const logout       = () => { localStorage.clear(); window.location.href = '/'; }; // ✅ Fixed
 
-// Main fetch wrapper — adds token automatically
+
 async function apiRequest(endpoint, method = 'GET', body = null) {
     const headers = {
         'Content-Type': 'application/json',
@@ -14,9 +16,33 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
     const config = { method, headers };
     if (body) config.body = JSON.stringify(body);
 
-    const response = await fetch(`${BASE_URL}${endpoint}`, config);
+    let response = await fetch(`${BASE_URL}${endpoint}`, config);
 
-    if (response.status === 401) { logout(); return; }
+
+    if (response.status === 401) {
+        const refreshToken = getRefresh();
+        if (refreshToken) {
+            const refreshRes = await fetch(`${BASE_URL}/auth/refresh/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh: refreshToken })
+            });
+
+            if (refreshRes.ok) {
+                const data = await refreshRes.json();
+                saveToken(data.access);
+                // Retry original request with new token
+                config.headers['Authorization'] = `Bearer ${data.access}`;
+                response = await fetch(`${BASE_URL}${endpoint}`, config);
+            } else {
+                logout(); // Refresh failed — send to login
+                return;
+            }
+        } else {
+            logout(); // No refresh token — send to login
+            return;
+        }
+    }
 
     return response.json();
 }
@@ -28,7 +54,12 @@ async function login(username, password) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
     });
-    return res.json();
+    const data = await res.json();
+    if (data.access) {
+        saveToken(data.access);      // ✅ Save access token
+        saveRefresh(data.refresh);   // ✅ Save refresh token
+    }
+    return data;
 }
 
 // Clients

@@ -21,12 +21,12 @@ from django.views.static import serve
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from pathlib import Path
-import os
 
-from clients.views  import ClientViewSet
-from projects.views import ProjectViewSet
-from invoices.views import InvoiceViewSet
-from timelogs.views import TimeLogViewSet
+from clients.views   import ClientViewSet
+from projects.views  import ProjectViewSet
+from invoices.views  import InvoiceViewSet
+from timelogs.views  import TimeLogViewSet
+from core.auth_views import register_view, forgot_password_view  
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -37,23 +37,26 @@ router.register(r'invoices', InvoiceViewSet, basename='invoice')
 router.register(r'timelogs', TimeLogViewSet, basename='timelog')
 
 urlpatterns = [
-    # Django Admin
     path('admin/', admin.site.urls),
 
     # API endpoints
-    path('api/',              include(router.urls)),
-    path('api/auth/login/',   TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/auth/refresh/', TokenRefreshView.as_view(),   name='token_refresh'),
+    path('api/',                       include(router.urls)),
+    path('api/auth/login/',            TokenObtainPairView.as_view(),  name='token_obtain_pair'),
+    path('api/auth/refresh/',          TokenRefreshView.as_view(),     name='token_refresh'),
+    path('api/auth/register/',         register_view,                  name='register_api'),        
+    path('api/auth/forgot-password/',  forgot_password_view,           name='forgot_password_api'), 
 
-    # Serve CSS and JS files
+    # Static files
     path('css/<path:path>', serve, {'document_root': BASE_DIR / 'frontend/css'}),
     path('js/<path:path>',  serve, {'document_root': BASE_DIR / 'frontend/js'}),
 
     # Frontend HTML pages
-    path('',                TemplateView.as_view(template_name='index.html'),     name='login'),
-    path('dashboard.html',  TemplateView.as_view(template_name='dashboard.html'), name='dashboard'),
-    path('clients.html',    TemplateView.as_view(template_name='clients.html'),   name='clients'),
-    path('projects.html',   TemplateView.as_view(template_name='projects.html'),  name='projects'),
-    path('invoices.html',   TemplateView.as_view(template_name='invoices.html'),  name='invoices'),
-    path('timelogs.html',   TemplateView.as_view(template_name='timelogs.html'),  name='timelogs'),
+    path('',                     TemplateView.as_view(template_name='index.html'),           name='login'),
+    path('dashboard.html',       TemplateView.as_view(template_name='dashboard.html'),       name='dashboard'),
+    path('clients.html',         TemplateView.as_view(template_name='clients.html'),         name='clients'),
+    path('projects.html',        TemplateView.as_view(template_name='projects.html'),        name='projects'),
+    path('invoices.html',        TemplateView.as_view(template_name='invoices.html'),        name='invoices'),
+    path('timelogs.html',        TemplateView.as_view(template_name='timelogs.html'),        name='timelogs'),
+    path('forgot-password.html', TemplateView.as_view(template_name='forgot-password.html'),name='forgot_password'), 
+    path('register.html',        TemplateView.as_view(template_name='register.html'),        name='register'),        
 ]
