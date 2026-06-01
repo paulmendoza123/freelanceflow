@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-rjq5%+f3pqk9#cyr9qavq2*6!&ys-h_8ib#)&(d+kn)0ombwlo
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['paul981.pythonanywhere.com', '127.0.0.1']
 
 
 # Application definition
@@ -44,8 +44,9 @@ INSTALLED_APPS = [
 ]
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
+     'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
         'NAME': 'freelanceflow_db',
         'USER': 'freelance_user',   # ← the user you just created
         'PASSWORD': 'user123',      # ← the password you just set
@@ -122,6 +123,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
